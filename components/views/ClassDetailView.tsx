@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { MOCK_CLASSES, MOCK_COURSES } from '../../constants';
+import { MOCK_CLASSES, MOCK_COURSES, MOCK_STUDENTS } from '../../constants';
 import { Student, Teacher, UserRole } from '../../types';
 import { 
   ChevronLeft, 
@@ -23,7 +23,10 @@ import {
   FileCheck,
   Search,
   BookMarked,
-  CheckCircle2
+  CheckCircle2,
+  Check,
+  ListOrdered,
+  BookOpen
 } from 'lucide-react';
 
 interface ClassDetailViewProps {
@@ -31,6 +34,8 @@ interface ClassDetailViewProps {
   onStudentClick: (id: string) => void;
   onBack: () => void;
   onEnterCourse: (id: string) => void;
+  onClassSwitch?: (id: string) => void;
+  checkPermission?: (category: any, action: string) => boolean;
 }
 
 const UpgradePopup = ({ onClose }: { onClose: () => void }) => (
@@ -56,6 +61,8 @@ const UpgradePopup = ({ onClose }: { onClose: () => void }) => (
 );
 
 const AddMemberModal = ({ type, onClose, onSave }: { type: 'student' | 'teacher', onClose: () => void, onSave: (data: any) => void }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -64,98 +71,162 @@ const AddMemberModal = ({ type, onClose, onSave }: { type: 'student' | 'teacher'
     level: type === 'student' ? 'Digital Kids Starter V2' : ''
   });
 
+  const filteredStudents = MOCK_STUDENTS.filter(s => 
+    `${s.firstName} ${s.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.username.includes(searchTerm)
+  );
+
+  const handleSelectStudent = (student: Student) => {
+    setSelectedId(student.id);
+  };
+
+  const handleConfirm = () => {
+    if (type === 'student') {
+      const selected = MOCK_STUDENTS.find(s => s.id === selectedId);
+      if (selected) onSave(selected);
+    } else {
+      onSave(formData);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-[#292667]/70 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="bg-white rounded-[2.5rem] p-8 max-md w-full shadow-2xl border-t-[12px] border-[#fbee21] relative animate-in slide-in-from-bottom-8 duration-300">
+      <div className="bg-white rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl border-t-[12px] border-[#fbee21] relative animate-in slide-in-from-bottom-8 duration-300 flex flex-col max-h-[85vh]">
         <button onClick={onClose} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-[#ec2027] transition-colors bg-slate-50 rounded-xl">
           <X size={20} strokeWidth={3} />
         </button>
 
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex items-center gap-4 mb-6 shrink-0">
            <div className={`p-4 rounded-2xl text-white shadow-lg ${type === 'student' ? 'bg-[#ec2027]' : 'bg-[#00a651]'}`}>
               {type === 'student' ? <UserPlus size={24} /> : <UserCheck size={24} />}
            </div>
            <div>
-              <h3 className="text-xl font-black text-[#292667] uppercase tracking-tight">Add New {type}</h3>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Registering for U Book Store</p>
+              <h3 className="text-xl font-black text-[#292667] uppercase tracking-tight">
+                {type === 'student' ? 'Browse Learners' : `Add New ${type}`}
+              </h3>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                {type === 'student' ? 'Select from Global Directory' : 'Registering for U Book Store'}
+              </p>
            </div>
         </div>
 
-        <div className="space-y-4">
-           <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">First Name</label>
-                 <input 
-                   type="text" 
-                   value={formData.firstName}
-                   onChange={e => setFormData({...formData, firstName: e.target.value})}
-                   placeholder="e.g. Timmy"
-                   className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-[#292667] focus:border-[#fbee21] focus:bg-white outline-none transition-all"
-                 />
-              </div>
-              <div className="space-y-1">
-                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Last Name</label>
-                 <input 
-                   type="text" 
-                   value={formData.lastName}
-                   onChange={e => setFormData({...formData, lastName: e.target.value})}
-                   placeholder="e.g. Lee"
-                   className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-[#292667] focus:border-[#fbee21] focus:bg-white outline-none transition-all"
-                 />
-              </div>
-           </div>
-
-           <div className="space-y-1">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                 {type === 'student' ? 'Student ID Code' : 'Teacher Code'}
-              </label>
+        {type === 'student' ? (
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <div className="relative mb-4 shrink-0">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} strokeWidth={3} />
               <input 
-                type="text" 
-                value={formData.idCode}
-                onChange={e => setFormData({...formData, idCode: e.target.value})}
-                placeholder={type === 'student' ? "7 Digits" : "UB-XXXX"}
-                className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-mono font-black text-[#ec2027] focus:border-[#fbee21] focus:bg-white outline-none transition-all"
+                type="text"
+                placeholder="Search by name or student ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-[#292667] focus:border-[#ec2027] focus:bg-white outline-none transition-all shadow-inner"
               />
-           </div>
+            </div>
 
-           {type === 'teacher' ? (
-              <div className="space-y-1">
-                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Role / Position</label>
-                 <select 
-                   value={formData.role}
-                   onChange={e => setFormData({...formData, role: e.target.value})}
-                   className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-[#292667] outline-none"
-                 >
-                    <option>Educator</option>
-                    <option>Assistant</option>
-                    <option>Guest Speaker</option>
-                 </select>
-              </div>
-           ) : (
-              <div className="space-y-1">
-                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Learning Level</label>
-                 <select 
-                   value={formData.level}
-                   onChange={e => setFormData({...formData, level: e.target.value})}
-                   className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-[#292667] outline-none"
-                 >
-                    <option>Digital Kids Starter V2</option>
-                    <option>Level 1 Core</option>
-                    <option>Advanced AI</option>
-                 </select>
-              </div>
-           )}
-        </div>
+            <div className="flex-1 overflow-y-auto scrollbar-hide space-y-2 pr-1">
+              {filteredStudents.length > 0 ? (
+                filteredStudents.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => handleSelectStudent(s)}
+                    className={`w-full p-4 rounded-2xl border-2 transition-all flex items-center justify-between group ${
+                      selectedId === s.id 
+                        ? 'bg-red-50 border-[#ec2027] shadow-md' 
+                        : 'bg-white border-slate-50 hover:border-slate-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-white shadow-sm">
+                         <img src={`https://picsum.photos/seed/${s.id}/64`} className="w-full h-full object-cover" alt="" />
+                      </div>
+                      <div className="text-left">
+                        <p className={`font-black text-sm uppercase tracking-tight ${selectedId === s.id ? 'text-[#ec2027]' : 'text-[#292667]'}`}>{s.firstName} {s.lastName}</p>
+                        <p className="text-[10px] font-mono font-bold text-slate-400">#{s.username}</p>
+                      </div>
+                    </div>
+                    {selectedId === s.id ? (
+                      <div className="w-6 h-6 rounded-full bg-[#ec2027] text-white flex items-center justify-center shadow-lg animate-in zoom-in">
+                         <Check size={14} strokeWidth={4} />
+                      </div>
+                    ) : (
+                      <div className="w-6 h-6 rounded-full border-2 border-slate-200 group-hover:border-slate-300" />
+                    )}
+                  </button>
+                ))
+              ) : (
+                <div className="py-12 text-center opacity-30">
+                   <Search size={48} className="mx-auto text-slate-300 mb-2" />
+                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">No Learners Found</p>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+             <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">First Name</label>
+                   <input 
+                     type="text" 
+                     value={formData.firstName}
+                     onChange={e => setFormData({...formData, firstName: e.target.value})}
+                     placeholder="e.g. Jane"
+                     className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-[#292667] focus:border-[#fbee21] focus:bg-white outline-none transition-all"
+                   />
+                </div>
+                <div className="space-y-1">
+                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Last Name</label>
+                   <input 
+                     type="text" 
+                     value={formData.lastName}
+                     onChange={e => setFormData({...formData, lastName: e.target.value})}
+                     placeholder="e.g. Smith"
+                     className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-[#292667] focus:border-[#fbee21] focus:bg-white outline-none transition-all"
+                   />
+                </div>
+             </div>
 
-        <div className="mt-8 flex flex-col sm:flex-row gap-4">
+             <div className="space-y-1">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Teacher Code</label>
+                <input 
+                  type="text" 
+                  value={formData.idCode}
+                  onChange={e => setFormData({...formData, idCode: e.target.value})}
+                  placeholder="UB-XXXX"
+                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-mono font-black text-[#ec2027] focus:border-[#fbee21] focus:bg-white outline-none transition-all"
+                />
+             </div>
+
+             <div className="space-y-1">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Role / Position</label>
+                <select 
+                  value={formData.role}
+                  onChange={e => setFormData({...formData, role: e.target.value})}
+                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl text-sm font-bold text-[#292667] outline-none appearance-none"
+                >
+                   <option>Educator</option>
+                   <option>Assistant</option>
+                   <option>Guest Speaker</option>
+                </select>
+             </div>
+          </div>
+        )}
+
+        <div className="mt-8 flex flex-col sm:flex-row gap-4 shrink-0">
            <button onClick={onClose} className="flex-1 py-4 px-6 bg-slate-100 text-slate-400 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-200 transition-all">
               Cancel
            </button>
            <button 
-             onClick={() => onSave(formData)}
-             className={`flex-[1.5] py-4 px-6 text-white rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 border-b-4 border-black/10 ${type === 'student' ? 'bg-[#ec2027] shadow-red-100' : 'bg-[#00a651] shadow-green-100'}`}
+             disabled={type === 'student' && !selectedId}
+             onClick={handleConfirm}
+             className={`flex-[1.5] py-4 px-6 text-white rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 border-b-4 border-black/10 ${
+               type === 'student' 
+                 ? (selectedId ? 'bg-[#ec2027] shadow-red-100' : 'bg-slate-300 cursor-not-allowed') 
+                 : 'bg-[#00a651] shadow-green-100'
+             }`}
            >
-              <Save size={18} /> Save {type}
+              {type === 'student' ? <CheckCircle2 size={18} /> : <Save size={18} />}
+              {type === 'student' ? 'Add Selected student' : `Save ${type}`}
            </button>
         </div>
       </div>
@@ -163,8 +234,9 @@ const AddMemberModal = ({ type, onClose, onSave }: { type: 'student' | 'teacher'
   );
 };
 
-export const ClassDetailView: React.FC<ClassDetailViewProps> = ({ classId, onStudentClick, onBack, onEnterCourse }) => {
+export const ClassDetailView: React.FC<ClassDetailViewProps> = ({ classId, onStudentClick, onBack, onEnterCourse, onClassSwitch, checkPermission }) => {
   const cls = MOCK_CLASSES.find(c => c.id === classId) || MOCK_CLASSES[0];
+  const associatedCourse = MOCK_COURSES.find(c => c.id === cls.courseId) || MOCK_COURSES[0];
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [activeModal, setActiveModal] = useState<'student' | 'teacher' | null>(null);
   const [activeTab, setActiveTab] = useState<'students' | 'teachers'>('students');
@@ -209,14 +281,21 @@ export const ClassDetailView: React.FC<ClassDetailViewProps> = ({ classId, onStu
         <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full -mr-24 -mt-24 blur-3xl"></div>
         
         <div className="flex items-center gap-4 md:gap-6 relative z-10">
-           <button onClick={onBack} className="p-5 bg-white/10 rounded-[2rem] text-white shadow-xl hover:bg-[#ec2027] transition-all group active:scale-90">
+           <button onClick={onBack} className="p-5 bg-white/10 rounded-[2rem] text-white shadow-xl hover:bg-[#ec2027] transition-all group active:scale-90 border-2 border-white/10 flex-shrink-0">
              <ChevronLeft size={42} strokeWidth={4} />
            </button>
            <div>
-             <h2 className="text-4xl font-black leading-none tracking-tight uppercase">{cls.name} <span className="text-[#fbee21]">Dashboard</span></h2>
-             <div className="flex items-center gap-3 mt-3">
-                <span className="px-3 py-1 bg-[#00a651] rounded-lg text-[11px] font-black uppercase tracking-[0.1em] text-white">{cls.level}</span>
-                <span className="text-[12px] font-black text-[#fbee21] uppercase tracking-[0.15em]">{cls.schedule}</span>
+             <h2 className="text-4xl font-black leading-none tracking-tight uppercase truncate max-w-sm">{associatedCourse.name}</h2>
+             <div className="flex flex-wrap items-center gap-4 mt-3">
+                <div className="flex flex-col">
+                  <span className="text-[8px] font-black uppercase text-[#fbee21] tracking-[0.2em] leading-none mb-1 opacity-60">COURSE NAME</span>
+                  <span className="text-[12px] font-black text-white uppercase tracking-widest">{associatedCourse.name}</span>
+                </div>
+                <div className="w-px h-8 bg-white/10 hidden sm:block"></div>
+                <div className="flex flex-col">
+                  <span className="text-[8px] font-black uppercase text-[#00a651] tracking-[0.2em] leading-none mb-1 opacity-60">CLASS NAME</span>
+                  <span className="text-[12px] font-black text-[#fbee21] uppercase tracking-widest">{cls.name}</span>
+                </div>
              </div>
            </div>
         </div>
@@ -240,15 +319,18 @@ export const ClassDetailView: React.FC<ClassDetailViewProps> = ({ classId, onStu
       {/* Split Page View */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden pb-4">
         
-        {/* Left Column: Course Names & Info */}
+        {/* Left Column: Syllabus Overview */}
         <div className="lg:col-span-4 flex flex-col gap-6 overflow-hidden">
           <div className="bg-white rounded-[3rem] p-8 border-2 border-slate-100 shadow-xl flex flex-col overflow-hidden relative">
             <div className="flex items-center justify-between mb-8 flex-shrink-0">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-red-50 rounded-2xl text-[#ec2027]">
-                  <Layers size={32} strokeWidth={3} />
+                  <ListOrdered size={32} strokeWidth={3} />
                 </div>
-                <h3 className="text-xl font-black uppercase tracking-tight text-[#292667]">Course Names</h3>
+                <div>
+                   <h3 className="text-xl font-black uppercase tracking-tight text-[#292667]">{cls.name}</h3>
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Serial Module Order</p>
+                </div>
               </div>
               <div className="p-2 bg-[#fbee21]/20 rounded-xl">
                  <Sparkles size={20} className="text-[#292667]" />
@@ -256,31 +338,31 @@ export const ClassDetailView: React.FC<ClassDetailViewProps> = ({ classId, onStu
             </div>
 
             <div className="flex-1 overflow-y-auto scrollbar-hide space-y-4 pr-2">
-              {MOCK_COURSES.slice(0, 3).map(course => (
-                <div 
-                  key={course.id}
-                  onClick={() => course.isPurchased && onEnterCourse(course.id)}
-                  className={`relative rounded-[2rem] p-6 border-2 transition-all flex items-center justify-between overflow-hidden cursor-pointer ${
-                    course.isPurchased 
-                      ? 'bg-white border-slate-100 shadow-sm group hover:border-[#00a651] hover:shadow-xl' 
-                      : 'bg-slate-50 border-slate-100 grayscale opacity-40 cursor-not-allowed'
-                  }`}
-                >
-                  <div className="relative z-10 min-w-0">
-                    <h4 className={`font-black text-[#292667] text-lg truncate uppercase ${course.isPurchased ? 'group-hover:text-[#00a651]' : ''}`}>
-                      {course.name}
-                    </h4>
-                    <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-full inline-block mt-2 ${course.isPurchased ? 'bg-[#00a651]/10 text-[#00a651]' : 'bg-slate-200 text-slate-400'}`}>
-                      {course.isPurchased ? 'Active Registration' : 'Locked Asset'}
-                    </span>
-                  </div>
-                  {course.isPurchased && (
-                    <div className="w-10 h-10 bg-[#00a651] text-white rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                      <ChevronRight size={24} strokeWidth={4} />
+              {associatedCourse.modules.length > 0 ? (
+                associatedCourse.modules.map((m, i) => (
+                  <div 
+                    key={m.id}
+                    className="relative rounded-[2rem] p-6 bg-slate-50 border-2 border-transparent hover:border-[#00a651] hover:bg-white transition-all flex items-center gap-6 group cursor-default"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-[#292667] text-[#fbee21] flex items-center justify-center font-black text-xl shadow-lg flex-shrink-0 group-hover:scale-110 transition-transform">
+                      {i + 1}
                     </div>
-                  )}
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-black text-[#292667] text-base truncate uppercase tracking-tight group-hover:text-[#00a651] transition-colors">
+                        {m.title}
+                      </h4>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                        {m.lessons.length} Learning Tasks
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-20 text-center opacity-30">
+                  <Lock size={48} className="mx-auto text-slate-300 mb-4" />
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Curriculum Structure Pending</p>
                 </div>
-              ))}
+              )}
             </div>
             
             {/* DROPDOWN CONTAINER FOR BROWSE MORE COURSES */}
@@ -291,25 +373,25 @@ export const ClassDetailView: React.FC<ClassDetailViewProps> = ({ classId, onStu
                   isBrowseDropdownOpen ? 'bg-[#ec2027] text-white border-red-900 shadow-red-100' : 'bg-[#292667] text-[#fbee21] hover:bg-[#ec2027] hover:text-white'
                 }`}
               >
-                {isBrowseDropdownOpen ? <X size={20} /> : <BookMarked size={20} />}
-                {isBrowseDropdownOpen ? 'Close Library' : 'Browse More Courses'}
+                {isBrowseDropdownOpen ? <X size={20} /> : <BookOpen size={20} />}
+                {isBrowseDropdownOpen ? 'Close Library' : 'Browse Classes'}
               </button>
 
               {isBrowseDropdownOpen && (
                 <div className="absolute bottom-full left-0 right-0 mb-4 bg-white rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.4)] border-4 border-[#292667] overflow-hidden z-[120] animate-in slide-in-from-bottom-10 fade-in duration-300">
                   <div className="p-6 bg-[#292667] text-white flex items-center justify-between">
                      <div className="flex items-center gap-3">
-                        <BookMarked size={20} className="text-[#fbee21]" />
-                        <h4 className="font-black text-sm uppercase tracking-widest">Your Registered U Books</h4>
+                        <UsersIcon size={20} className="text-[#fbee21]" />
+                        <h4 className="font-black text-sm uppercase tracking-widest">Active Hub Classes</h4>
                      </div>
-                     <span className="text-[10px] font-black text-[#fbee21] px-2 py-1 bg-white/10 rounded-lg">{registeredCourses.length} TOTAL</span>
+                     <span className="text-[10px] font-black text-[#fbee21] px-2 py-1 bg-white/10 rounded-lg">{MOCK_CLASSES.length} TOTAL</span>
                   </div>
                   <div className="p-4 bg-slate-50 border-b-2 border-slate-100">
                     <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border-2 border-slate-200 focus-within:border-[#00a651] transition-all">
                       <Search size={16} className="text-slate-400" />
                       <input 
                         type="text" 
-                        placeholder="Quick filter books..." 
+                        placeholder="Search for other classes..." 
                         value={courseSearch}
                         onChange={(e) => setCourseSearch(e.target.value)}
                         className="bg-transparent text-xs font-bold text-[#292667] outline-none w-full"
@@ -317,31 +399,26 @@ export const ClassDetailView: React.FC<ClassDetailViewProps> = ({ classId, onStu
                     </div>
                   </div>
                   <div className="max-h-[350px] overflow-y-auto scrollbar-hide p-3 space-y-2">
-                    {registeredCourses.length > 0 ? (
-                      registeredCourses.map(course => (
-                        <button 
-                          key={course.id}
-                          onClick={() => {
-                            onEnterCourse(course.id);
-                            setIsBrowseDropdownOpen(false);
-                          }}
-                          className="w-full text-left p-4 rounded-2xl hover:bg-slate-50 transition-all flex items-center justify-between group border-2 border-transparent hover:border-[#00a651]"
-                        >
-                          <div className="min-w-0">
-                            <p className="font-black text-[#292667] text-xs uppercase tracking-tight truncate group-hover:text-[#00a651]">{course.name}</p>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Difficulty: {course.level || 'Intermediate'}</p>
-                          </div>
-                          <div className="p-2 bg-green-50 text-[#00a651] rounded-lg opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100">
-                            <CheckCircle2 size={16} strokeWidth={3} />
-                          </div>
-                        </button>
-                      ))
-                    ) : (
-                      <div className="p-12 text-center">
-                         <Search size={32} className="mx-auto text-slate-200 mb-3" />
-                         <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest">No books found in your library</p>
-                      </div>
-                    )}
+                    {MOCK_CLASSES.map(item => (
+                      <button 
+                        key={item.id}
+                        onClick={() => {
+                          onClassSwitch?.(item.id);
+                          setIsBrowseDropdownOpen(false);
+                        }}
+                        className={`w-full text-left p-4 rounded-2xl transition-all flex items-center justify-between group border-2 ${item.id === classId ? 'bg-red-50 border-[#ec2027]' : 'hover:bg-slate-50 border-transparent hover:border-[#00a651]'}`}
+                      >
+                        <div className="min-w-0">
+                          <p className={`font-black text-xs uppercase tracking-tight truncate ${item.id === classId ? 'text-[#ec2027]' : 'text-[#292667] group-hover:text-[#00a651]'}`}>{item.name}</p>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Level: {item.level}</p>
+                        </div>
+                        {item.id === classId && (
+                           <div className="p-2 bg-[#ec2027] text-white rounded-lg">
+                              <CheckCircle2 size={16} strokeWidth={3} />
+                           </div>
+                        )}
+                      </button>
+                    ))}
                   </div>
                 </div>
               )}

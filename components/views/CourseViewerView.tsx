@@ -31,7 +31,6 @@ interface CourseViewerViewProps {
 export const CourseViewerView: React.FC<CourseViewerViewProps> = ({ courseId, onBack }) => {
   const course = MOCK_COURSES.find(c => c.id === courseId) || MOCK_COURSES[0];
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
-  const [remark, setRemark] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const getLessonIcon = (type: Lesson['type']) => {
@@ -52,12 +51,6 @@ export const CourseViewerView: React.FC<CourseViewerViewProps> = ({ courseId, on
       case 'text': return 'bg-emerald-500';
       default: return 'bg-slate-500';
     }
-  };
-
-  const handleSendRemark = () => {
-    if (!remark.trim()) return;
-    alert(`Remark sent to Teacher & Admin for task: ${activeLesson?.title}`);
-    setRemark('');
   };
 
   const handleFileUpload = () => {
@@ -306,44 +299,6 @@ export const CourseViewerView: React.FC<CourseViewerViewProps> = ({ courseId, on
                     </div>
                   )}
                </div>
-
-               {/* New Remarks Section for Admin/Teacher Review */}
-               <div className="p-8 bg-slate-50 border-t-2 border-slate-100 shrink-0 shadow-inner">
-                  <div className="max-w-4xl mx-auto flex flex-col gap-4">
-                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                           <div className="p-2.5 bg-[#292667] text-white rounded-xl shadow-lg">
-                              <MessageSquare size={18} strokeWidth={3} />
-                           </div>
-                           <div>
-                              <h4 className="text-[11px] font-black text-[#292667] uppercase tracking-widest leading-none">Post Reflection or Question</h4>
-                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight mt-1">This will be shared with your Teacher and Administrator</p>
-                           </div>
-                        </div>
-                        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-slate-200">
-                           <ShieldCheck size={12} className="text-[#00a651]" />
-                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Official Channel</span>
-                        </div>
-                     </div>
-                     <div className="flex gap-4">
-                        <div className="flex-1">
-                           <textarea 
-                              value={remark}
-                              onChange={(e) => setRemark(e.target.value)}
-                              placeholder="Type your notes, questions, or reflections here..."
-                              className="w-full bg-white border-2 border-slate-200 rounded-2xl px-6 py-4 text-sm font-bold text-[#292667] outline-none focus:border-[#00a651] transition-all resize-none shadow-sm placeholder:text-slate-300 h-20"
-                           />
-                        </div>
-                        <button 
-                           onClick={handleSendRemark}
-                           className="px-10 bg-[#00a651] text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:scale-105 transition-all border-b-6 border-black/10 flex flex-col items-center justify-center gap-2 h-20 active:scale-95"
-                        >
-                           <Send size={24} />
-                           <span>Submit</span>
-                        </button>
-                     </div>
-                  </div>
-               </div>
             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-10 text-center opacity-30">
@@ -353,9 +308,9 @@ export const CourseViewerView: React.FC<CourseViewerViewProps> = ({ courseId, on
                <h3 className="text-4xl font-black text-[#292667] uppercase tracking-tighter">Ready to Learn?</h3>
                <p className="text-lg font-bold text-slate-400 mt-4 uppercase tracking-[0.2em]">Select a task from the map to begin your adventure</p>
                <div className="mt-12 flex gap-4">
-                  <div className="w-3 h-3 rounded-full bg-slate-200 animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-3 h-3 rounded-full bg-slate-200 animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                  <div className="w-3 h-3 rounded-full bg-slate-200 animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                  <div className="w-3 h-3 rounded-full bg-slate-200 animate-bounce" style={{ delay: '0ms' }}></div>
+                  <div className="w-3 h-3 rounded-full bg-slate-200 animate-bounce" style={{ delay: '150ms' }}></div>
+                  <div className="w-3 h-3 rounded-full bg-slate-200 animate-bounce" style={{ delay: '300ms' }}></div>
                </div>
             </div>
           )}

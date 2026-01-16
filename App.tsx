@@ -118,6 +118,7 @@ const App: React.FC = () => {
           onStudentClick={navigateToStudent} 
           onBack={() => setCurrentView(View.MY_CLASSES)} 
           onEnterCourse={navigateToCourseViewer}
+          onClassSwitch={navigateToClass}
           checkPermission={checkPermission}
         />;
       case View.STUDENT_DETAIL:
